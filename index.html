@@ -195,7 +195,7 @@
                         <div class="my-4 border-t border-slate-800"></div>
                         <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Layanan Siswa</p>
                         <button onclick="handleMenuAction('prestasi')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-green-400 font-medium transition flex items-center gap-3 group">
-                            <span class="w-8 h-8 rounded-lg bg-slate-800 text-green-500 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition"><i class="fa-solid fa-medal text-xs"></i></span> Prestasiku
+                            <span class="w-8 h-8 rounded-lg bg-slate-800 text-green-500 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition"><i class="fa-solid fa-medal text-xs"></i></span> Data Prestasiku
                         </button>
                         <button onclick="handleMenuAction('pelanggaran')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-red-400 font-medium transition flex items-center gap-3 group">
                             <span class="w-8 h-8 rounded-lg bg-slate-800 text-red-500 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition"><i class="fa-solid fa-circle-exclamation text-xs"></i></span> Pelanggaranku
@@ -550,9 +550,10 @@
             // 2. Fetch Real Data for counts
             // Kita panggil API untuk masing-masing tipe secara parallel biar cepat
             try {
-                const pLaporan = callAPI({ action: 'getData', type: 'bullying', role: currentUser.role, id_unik: currentUser.id_unik });
-                const pKonseling = callAPI({ action: 'getData', type: 'booking', role: currentUser.role, id_unik: currentUser.id_unik });
-                const pPrestasi = callAPI({ action: 'getData', type: 'prestasi', role: currentUser.role, id_unik: currentUser.id_unik });
+                // Tambahkan parameter "nama: currentUser.nama" di belakangnya
+				const pLaporan = callAPI({ action: 'getData', type: 'bullying', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
+				const pKonseling = callAPI({ action: 'getData', type: 'booking', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
+				const pPrestasi = callAPI({ action: 'getData', type: 'prestasi', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
 
                 const [rLaporan, rKonseling, rPrestasi] = await Promise.all([pLaporan, pKonseling, pPrestasi]);
 
@@ -607,7 +608,8 @@
             pagnDiv.classList.add('hidden');
 
             try {
-                const res = await callAPI({ action: 'getData', type: type, role: currentUser.role, id_unik: currentUser.id_unik });
+                // Tambahkan parameter "nama: currentUser.nama"
+				const res = await callAPI({ action: 'getData', type: type, role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
                 if(res.status === 'success') {
                     globalData = res.data;
                     currentPage = 1;

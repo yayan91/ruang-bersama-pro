@@ -198,7 +198,6 @@
                     <div id="menu-siswa-wrapper" class="hidden">
                         <div class="my-4 border-t border-slate-800"></div>
                         <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Layanan Siswa</p>
-                        <!-- FITUR REVISI: Ubah nama menu jadi lebih umum -->
                         <button onclick="handleMenuAction('prestasi')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-green-400 font-medium transition flex items-center gap-3 group">
                             <span class="w-8 h-8 rounded-lg bg-slate-800 text-green-500 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition"><i class="fa-solid fa-medal text-xs"></i></span> Data Prestasi
                         </button>
@@ -971,6 +970,20 @@
         function onSiswaSelect(e) { const s = getSiswaDetail(e.value); document.getElementById('info-nama').value=s.nama; document.getElementById('info-kelas').value=s.kelas; document.getElementById('info-kelamin').value=s.kelamin; }
         async function loadReferensi() { const r = await callAPI({ action: 'getReferensi' }); if(r.status==='success') referensi=r; }
 
+        function fillDeskripsi(val, isPrestasi) {
+            const area = document.getElementById('form-catatan');
+            if(!val) return;
+            
+            if(isPrestasi) {
+                // Untuk Prestasi: Cari deskripsi berdasarkan kategori yang dipilih
+                const match = referensi.prestasi.find(r => r.kategori === val);
+                if(match) area.value = match.deskripsi;
+            } else {
+                // Untuk Pelanggaran: Value yang dikirim adalah deskripsi itu sendiri (dari dropdown template)
+                area.value = val;
+            }
+        }
+
         function openModal(type) {
             const m = document.getElementById('modal-container'); m.classList.remove('hidden');
             document.getElementById('modal-content').innerHTML = '<div class="flex justify-center p-10"><div class="loader"></div></div>';
@@ -978,8 +991,38 @@
             
             if(type.includes('lapor')) {
                 const isPres = type.includes('prestasi');
-                const cats = isPres ? referensi.prestasi : referensi.pelanggaran;
+                const rawCats = isPres ? referensi.prestasi : referensi.pelanggaran;
                 let opts = '<option value="">-- Pilih Siswa --</option>'; siswaList.forEach(s=>opts+=`<option value="${s.nisn}">${s.nama} (${s.kelas})</option>`);
+                
+                // 1. Dropdown Kategori (Ambil Unik)
+                // Kita gunakan Set untuk memfilter kategori ganda jika ada
+                const uniqueCats = [...new Set(rawCats.map(c => c.kategori))];
+                let catOpts = '<option value="">-- Pilih Kategori --</option>';
+                uniqueCats.forEach(c => catOpts += `<option value="${c}">${c}</option>`);
+
+                // 2. Dropdown Template Deskripsi (Khusus Pelanggaran)
+                let descTemplateHtml = '';
+                if (!isPres) {
+                    let descOpts = '<option value="">-- Pilih Template Deskripsi (Opsional) --</option>';
+                    rawCats.forEach(c => {
+                        // Tampilkan kategori sebentar di dalam option agar guru tahu ini deskripsi utk apa
+                        descOpts += `<option value="${c.deskripsi}">[${c.kategori}] ${c.deskripsi.substring(0, 50)}...</option>`;
+                    });
+                    
+                    descTemplateHtml = `
+                    <div class="mt-2">
+                        <label class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Template Bantuan</label>
+                        <select onchange="fillDeskripsi(this.value, false)" class="w-full p-2 bg-slate-900 rounded-lg border border-slate-700 text-xs text-slate-300">
+                            ${descOpts}
+                        </select>
+                    </div>`;
+                }
+
+                // Event Listener untuk Select Kategori:
+                // Jika Prestasi -> Trigger fillDeskripsi(value, true)
+                // Jika Pelanggaran -> Tidak ada event khusus (hanya set value name="kategori")
+                const onCatChange = isPres ? `onchange="fillDeskripsi(this.value, true)"` : '';
+
                 html = `
                 <form onsubmit="submitLaporan(event, '${isPres?'Prestasi':'Pelanggaran'}')" class="space-y-4">
                     <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
@@ -993,11 +1036,14 @@
                     </div>
                     <div>
                         <label class="text-xs text-slate-400 font-bold">KATEGORI</label>
-                        <select name="kategori" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700">${cats.map(c=>`<option>${c}</option>`)}</select>
+                        <select name="kategori" ${onCatChange} class="w-full p-3 bg-slate-800 rounded-xl border-slate-700">
+                            ${catOpts}
+                        </select>
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 font-bold">DETAIL</label>
-                        <textarea name="catatan" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700" rows="3"></textarea>
+                        <label class="text-xs text-slate-400 font-bold">DETAIL DESKRIPSI</label>
+                        ${descTemplateHtml} <!-- Dropdown tambahan khusus pelanggaran -->
+                        <textarea id="form-catatan" name="catatan" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700 mt-2" rows="3" placeholder="Tulis detail atau pilih template..."></textarea>
                     </div>
                     <div class="bg-slate-800 p-3 rounded-xl border-dashed border border-slate-600">
                         <label class="text-xs text-indigo-400 font-bold">BUKTI</label>
@@ -1385,29 +1431,29 @@
             doc.line(10, 36, 200, 36); // Garis bawah KOP
 
             // --- Fungsi Pembantu Format Tanggal (DD-MM-YYYY) ---
-			const formatDate = (dateStr) => {
-				if (!dateStr) return "-";
-				const [year, month, day] = dateStr.split("-");
-				return `${day}-${month}-${year}`;
-			};
+            const formatDate = (dateStr) => {
+                if (!dateStr) return "-";
+                const [year, month, day] = dateStr.split("-");
+                return `${day}-${month}-${year}`;
+            };
 
-			// --- 2. JUDUL LAPORAN ---
-			let reportTitle = `LAPORAN ${currentType.toUpperCase()}`;
-			if (currentType === 'bullying') reportTitle = "LAPORAN MASALAH / BULLYING";
+            // --- 2. JUDUL LAPORAN ---
+            let reportTitle = `LAPORAN ${currentType.toUpperCase()}`;
+            if (currentType === 'bullying') reportTitle = "LAPORAN MASALAH / BULLYING";
 
-			// Ambil value dari input
-			const start = document.getElementById('print-start').value;
-			const end = document.getElementById('print-end').value;
+            // Ambil value dari input
+            const start = document.getElementById('print-start').value;
+            const end = document.getElementById('print-end').value;
 
-			// Judul BOLD
-			doc.setFont("times", "bold");
-			doc.setFontSize(12);
-			doc.text(reportTitle, 105, 45, { align: "center" });
+            // Judul BOLD
+            doc.setFont("times", "bold");
+            doc.setFontSize(12);
+            doc.text(reportTitle, 105, 45, { align: "center" });
 
-			// Periode NORMAL dengan format tanggal yang sudah diubah
-			doc.setFont("times", "normal");
-			doc.setFontSize(10);
-			doc.text(`Periode Cetak: ${formatDate(start)} s/d ${formatDate(end)}`, 105, 50, { align: "center" });
+            // Periode NORMAL dengan format tanggal yang sudah diubah
+            doc.setFont("times", "normal");
+            doc.setFontSize(10);
+            doc.text(`Periode Cetak: ${formatDate(start)} s/d ${formatDate(end)}`, 105, 50, { align: "center" });
 
 
             // --- 3. TABEL DATA ---

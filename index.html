@@ -14,6 +14,8 @@
     <!-- jsPDF & AutoTable (Fitur Cetak Laporan) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+	
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         tailwind.config = {
@@ -33,9 +35,11 @@
     </script>
     <style>
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            /* Hapus background linear-gradient yang lama */
+            background-color: #0f172a; /* Warna dasar awal */
             background-attachment: fixed;
             color: #e2e8f0;
+            transition: background-color 1.5s ease, color 1.5s ease;
         }
         .glass-panel {
             background: rgba(30, 41, 59, 0.85);
@@ -84,6 +88,21 @@
         .chat-left { background: #334155; color: #f1f5f9; align-self: flex-start; border-bottom-left-radius: 2px; }
         .chat-right { background: #4f46e5; color: white; align-self: flex-end; border-bottom-right-radius: 2px; margin-left: auto; }
         .chat-meta { font-size: 0.65rem; opacity: 0.7; margin-top: 4px; display: block; }
+		
+		@keyframes goyangSantai { 
+			0%, 100% { transform: rotate(-10deg); } 
+			50% { transform: rotate(10deg); } 
+		}
+		.goyang-santai { 
+			display: inline-block !important; 
+			animation: goyangSantai 2s ease-in-out infinite; 
+		}
+		
+		/* Efek transisi halus saat tema berubah */
+		body {
+			transition: background-color 1.5s ease, color 1.5s ease;
+		}
+		
     </style>
 </head>
 <body class="antialiased overflow-hidden font-sans selection:bg-indigo-500 selection:text-white">
@@ -174,6 +193,13 @@
                     <button onclick="navTo('profil')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-indigo-400 font-medium transition flex items-center gap-3 group">
                         <span class="w-8 h-8 rounded-lg bg-slate-800 text-blue-500 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition"><i class="fa-solid fa-user text-xs"></i></span> Profil Saya
                     </button>
+					<button onclick="navTo('chatbot')" class="w-full text-left px-4 py-3 rounded-xl bg-teal-500/5 hover:bg-teal-500/15 border border-teal-500/10 hover:border-teal-500/30 text-teal-500/80 hover:text-teal-400 font-bold transition-all duration-300 flex items-center gap-3 group mt-1">
+						<span class="w-8 h-8 rounded-lg bg-teal-900/30 text-teal-400 flex items-center justify-center group-hover:bg-teal-500 group-hover:text-white transition shadow-[0_0_10px_rgba(20,184,166,0.2)]">
+							<i class="fa-solid fa-robot text-xs goyang-santai"></i>
+						</span> 
+						<span class="tracking-wide">RuBo AI</span>
+						<span class="ml-auto w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping"></span>
+					</button>
 
                     <div id="menu-guru-wrapper" class="hidden">
                         <div class="my-4 border-t border-slate-800"></div>
@@ -193,6 +219,9 @@
                         <button onclick="handleMenuAction('booking')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-pink-400 font-medium transition flex items-center gap-3 group">
                             <span class="w-8 h-8 rounded-lg bg-slate-800 text-pink-500 flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition"><i class="fa-solid fa-calendar-check text-xs"></i></span> Jadwal Konseling
                         </button>
+						<button onclick="document.getElementById('modal-darurat').classList.remove('hidden')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-green-400 font-medium transition flex items-center gap-3 group">
+							<span class="w-8 h-8 rounded-lg bg-slate-800 text-green-500 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition"><i class="fa-brands fa-whatsapp text-xs"></i></span> Hubungi Humas
+						</button>
                     </div>
 
                     <div id="menu-siswa-wrapper" class="hidden">
@@ -213,6 +242,9 @@
                         <button onclick="handleMenuAction('booking')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-pink-400 font-medium transition flex items-center gap-3 group">
                             <span class="w-8 h-8 rounded-lg bg-slate-800 text-pink-500 flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition"><i class="fa-solid fa-calendar-plus text-xs"></i></span> Janji Konseling
                         </button>
+						<button onclick="document.getElementById('modal-darurat').classList.remove('hidden')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-indigo-900/50 text-slate-400 hover:text-green-400 font-medium transition flex items-center gap-3 group">
+							<span class="w-8 h-8 rounded-lg bg-slate-800 text-green-500 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition"><i class="fa-brands fa-whatsapp text-xs"></i></span> Hubungi Humas
+						</button>
                     </div>
                 </nav>
 
@@ -229,7 +261,6 @@
         <!-- Main Content (LAYOUT WIDER: Max-w-7xl) -->
         <main class="flex-1 h-full overflow-y-auto p-4 pt-20 md:p-8 scroll-smooth flex flex-col" onclick="closeSidebarMobile()">
             
-            <!-- Dashboard -->
             <div id="page-dashboard" class="space-y-6 w-full max-w-7xl mx-auto fade-in flex-grow">
                 <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
@@ -241,10 +272,15 @@
                         <span id="clock-display" class="font-mono font-bold text-slate-300 tracking-wide">--:--</span>
                     </div>
                 </header>
+				
+				<div class="bg-indigo-900/30 border border-indigo-500/20 rounded-xl p-3 mb-6 flex gap-3 items-center animate-pulse-slow">
+					<div class="text-xl">💡</div>
+					<p id="quote-hari-ini" class="text-xs md:text-sm text-indigo-200 italic leading-relaxed">
+						Memuat kata mutiara hari ini...
+					</p>
+				</div>
 
-                <!-- STATS DASHBOARD (DINAMIS) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <!-- Stat 1: Status Sistem -->
                     <div class="glass-card p-6 rounded-2xl border-b-4 border-indigo-500">
                         <div class="flex justify-between items-center">
                             <div>
@@ -256,7 +292,6 @@
                         </div>
                     </div>
 
-                    <!-- Stat 2: Laporan (Bullying) -->
                     <div class="glass-card p-6 rounded-2xl border-b-4 border-orange-500">
                         <div class="flex justify-between items-center">
                             <div>
@@ -268,7 +303,6 @@
                         </div>
                     </div>
 
-                    <!-- Stat 3: Konseling -->
                     <div class="glass-card p-6 rounded-2xl border-b-4 border-pink-500">
                         <div class="flex justify-between items-center">
                             <div>
@@ -280,7 +314,6 @@
                         </div>
                     </div>
 
-                    <!-- Stat 4: Prestasi (Positif) -->
                     <div class="glass-card p-6 rounded-2xl border-b-4 border-green-500">
                         <div class="flex justify-between items-center">
                             <div>
@@ -293,7 +326,6 @@
                     </div>
                 </div>
 
-                <!-- Banner Hari Ini -->
                 <div class="glass-card p-6 rounded-2xl bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4">
                      <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl text-yellow-400 shadow-lg">📅</div>
@@ -307,7 +339,6 @@
                      </button>
                 </div>
 
-                <!-- Quick Actions Grid -->
                 <div class="mt-4">
                     <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-400"></i> Akses Cepat</h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -330,7 +361,18 @@
                     </div>
                 </div>
 
-                <!-- FITUR BARU: LEADERBOARD PRESTASI (Container untuk Juara Kelas) -->
+                <div class="mt-8 mb-4">
+                    <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-400"></i> Analitik Ruang Bersama</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                        <div class="glass-card p-4 rounded-2xl border border-slate-700/50 relative h-64 w-full">
+                            <canvas id="chart-komposisi"></canvas>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl border border-slate-700/50 relative h-64 w-full">
+                            <canvas id="chart-status"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mt-8 mb-4">
                     <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-ranking-star text-yellow-400"></i> Siswa Berprestasi Teratas</h3>
                     <div id="leaderboard-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -369,6 +411,50 @@
                         </div>
                         <button type="submit" id="btn-save-profile" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-indigo-700 hover:shadow-indigo-500/30 transition transform active:scale-95">Simpan Perubahan</button>
                     </form>
+                </div>
+            </div>
+			
+			<div id="page-chatbot" class="hidden w-full max-w-5xl mx-auto fade-in flex flex-col h-[calc(100vh-130px)] pb-4">
+                
+                <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex items-center justify-between mb-4 shrink-0 shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="relative flex-shrink-0">
+                            <div class="w-10 h-10 rounded-full bg-teal-900/50 flex items-center justify-center text-teal-400 border border-teal-800">
+                                <i class="fa-solid fa-robot goyang-santai"></i>
+                            </div>
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-slate-900 rounded-full animate-pulse"></span>
+                        </div>
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-2">
+                                <span class="text-white font-bold text-base md:text-lg">RuBo AI</span>
+                                <span class="text-[9px] font-bold text-teal-400 bg-teal-900/30 px-2 py-0.5 rounded-full uppercase tracking-tighter border border-teal-800/50">Online</span>
+                            </div>
+                            <span class="text-slate-500 text-xs font-medium">Asisten Ruang Bersama</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="document.getElementById('rubo-chat-box').innerHTML = ''" class="flex items-center gap-2 bg-slate-800 hover:bg-red-900/20 text-slate-400 hover:text-red-400 px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 hover:border-red-900/50 transition-all duration-300">
+                        <i class="fa-solid fa-broom"></i>
+                        <span class="hidden md:block">Bersihkan Chat</span>
+                    </button>
+                </div>
+
+                <div class="glass-card flex-1 rounded-2xl border-t-2 border-teal-500 bg-[#0f172a] flex flex-col shadow-xl overflow-hidden min-h-0">
+                    <div id="rubo-chat-box" class="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-3">
+                        <div class="chat-bubble chat-left bg-slate-800 border border-slate-700 shadow-sm !max-w-[85%] !rounded-2xl !rounded-tl-sm !p-3">
+                            <div class="font-bold text-[10px] text-teal-400 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-robot"></i> RuBo</div>
+                            <p class="text-slate-300 text-sm leading-relaxed">Halo sahabat! Aku RuBo, asisten virtual di Ruang Bersama. Ada yang mengganjal di hati hari ini? Cerita aja, rahasiamu aman bersamaku! 😊</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-slate-900/90 border-t border-slate-800 shrink-0">
+                        <form onsubmit="kirimPesanRuBo(event)" class="flex gap-2 items-center relative">
+                            <input type="text" id="rubo-input" class="flex-1 bg-slate-800 border border-slate-700 rounded-full px-4 py-2 text-sm text-white focus:ring-1 focus:ring-teal-500 outline-none shadow-inner" placeholder="Ketik pesan untuk RuBo..." autocomplete="off" required>
+                            <button type="submit" id="btn-rubo-send" class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center hover:bg-teal-500 transition shadow-lg shrink-0 transform hover:scale-105">
+                                <i class="fa-solid fa-paper-plane text-sm -ml-0.5"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
             
@@ -446,10 +532,31 @@
             </div>
         </div>
     </div>
+	
+	<div id="modal-darurat" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md fade-in">
+        <div class="glass-panel w-full max-w-sm p-8 rounded-3xl shadow-2xl relative bg-[#0f172a] border-t-4 border-red-500 text-center transform transition-all">
+                        <div class="w-20 h-20 mx-auto bg-red-500/20 rounded-full flex items-center justify-center mb-5">
+                <div class="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center text-white text-2xl shadow-[0_0_20px_rgba(220,38,38,0.6)] animate-pulse">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+            
+            <h3 class="text-2xl font-black text-white mb-2 tracking-wide">Layanan Darurat</h3>
+            <p class="text-sm text-slate-400 mb-8 leading-relaxed">Gunakan fasilitas ini <span class="text-red-400 font-bold bg-red-900/30 px-1 rounded">HANYA</span> untuk keadaan mendesak yang membutuhkan bantuan Humas secara langsung.</p>
+            
+                        <button onclick="window.open('https://wa.me/6281527008924?text=Halo%20Bapak/Ibu%20Humas,%20saya%20membutuhkan%20bantuan%20darurat%20sekarang.', '_blank')" class="w-full bg-[#25D366] text-white py-3.5 rounded-xl font-bold hover:bg-[#20bd5a] shadow-lg shadow-green-900/50 flex justify-center items-center gap-3 mb-3 transition transform hover:-translate-y-1">
+                <i class="fa-brands fa-whatsapp text-2xl"></i> Hubungi Humas
+            </button>
+            
+                        <button onclick="document.getElementById('modal-darurat').classList.add('hidden')" class="w-full bg-slate-800 text-slate-300 py-3.5 rounded-xl font-bold hover:bg-slate-700 hover:text-white transition border border-slate-700">
+                Batalkan
+            </button>
+        </div>
+    </div>
 
     <!-- JAVASCRIPT -->
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw3O-2666Nh1S9ekCudGTsJpOz4RgqnXf2a-EvASdwTk8h1SQyGce0N3KWd-dlLsYfC/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbw7DtqlbTpoVbObVGdvEDQmJ5N_LToZnz_ynv7SlGvMX95Ip9EDwZ_2Ox9GhMJwleut/exec"; 
 
         let currentUser = null;
         let referensi = { prestasi: [], pelanggaran: [] };
@@ -463,6 +570,8 @@
         let currentPage = 1;
         const itemsPerPage = 5;
         let currentType = '';
+		let chartKomposisi = null;
+        let chartStatus = null;
 
         // Security Helper (Anti XSS)
         function escapeHtml(text) {
@@ -577,6 +686,10 @@
             else { document.getElementById('menu-siswa-wrapper').classList.remove('hidden'); }
             navTo('dashboard');
         }
+		
+		tampilkanMotivasi();
+		
+		aturVibeSekolah();
 
         // --- DASHBOARD LOGIC (REVISED WITH LEADERBOARD) ---
         async function refreshDashboardStats() {
@@ -634,9 +747,9 @@
                                 <div class="text-2xl ${medals[index] || 'text-slate-500'} font-black w-8 text-center drop-shadow-md">#${index + 1}</div>
                                 <img src="${resolveImg(siswa.foto)}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-600 shadow-sm">
                                 <div class="overflow-hidden">
-                                    <h4 class="text-white font-bold text-sm truncate">${siswa.nama}</h4>
-                                    <p class="text-xs text-indigo-400 font-bold mt-0.5"><i class="fa-solid fa-medal"></i> ${prestasiCounts[nisn]} Prestasi</p>
-                                </div>
+									<h4 class="text-white font-bold text-sm truncate">${siswa.nama} <span class="text-slate-400 text-xs font-normal ml-1">(${siswa.kelas})</span></h4>
+									<p class="text-xs text-indigo-400 font-bold mt-0.5"><i class="fa-solid fa-medal"></i> ${prestasiCounts[nisn]} Prestasi</p>
+								</div>
                             </div>`;
                         }).join('');
                     } else {
@@ -647,6 +760,78 @@
                     document.getElementById('stat-prestasi').innerText = "0";
                     document.getElementById('leaderboard-container').innerHTML = `<div class="text-slate-500 text-sm italic">Gagal memuat data.</div>`;
                 }
+				
+				// --- RENDER GRAFIK CHART.JS ---
+                const totalBullying = rLaporan.status === 'success' ? rLaporan.data.length : 0;
+                const totalPrestasi = rPrestasi.status === 'success' ? rPrestasi.data.length : 0;
+                const totalKonseling = rKonseling.status === 'success' ? rKonseling.data.length : 0;
+
+                // Hancurkan grafik lama jika sudah ada (mencegah bug tumpuk saat di-refresh)
+                if (chartKomposisi) chartKomposisi.destroy();
+                if (chartStatus) chartStatus.destroy();
+
+                // Konfigurasi Default Font Chart.js untuk Dark Mode
+                Chart.defaults.color = '#94a3b8'; // text-slate-400
+                Chart.defaults.font.family = "'Outfit', sans-serif";
+
+                // 1. Grafik Doughnut (Komposisi Laporan)
+                const ctxKomposisi = document.getElementById('chart-komposisi').getContext('2d');
+                chartKomposisi = new Chart(ctxKomposisi, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pengaduan', 'Prestasi', 'Konseling'],
+                        datasets: [{
+                            data: [totalBullying, totalPrestasi, totalKonseling],
+                            backgroundColor: ['#f97316', '#22c55e', '#ec4899'], // orange, green, pink
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            title: { display: true, text: 'Komposisi Data Sistem', color: '#ffffff' }
+                        }
+                    }
+                });
+
+                // 2. Grafik Bar (Status Konseling jika ada datanya)
+                let diterima = 0, menunggu = 0, ditolak = 0;
+                if(rKonseling.status === 'success') {
+                    rKonseling.data.forEach(d => {
+                        if(d[6].includes('Diterima') || d[6].includes('Selesai')) diterima++;
+                        else if(d[6].includes('Ditolak')) ditolak++;
+                        else menunggu++;
+                    });
+                }
+
+                const ctxStatus = document.getElementById('chart-status').getContext('2d');
+                chartStatus = new Chart(ctxStatus, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Menunggu', 'Diterima/Selesai', 'Ditolak'],
+                        datasets: [{
+                            label: 'Jumlah Jadwal Konseling',
+                            data: [menunggu, diterima, ditolak],
+                            backgroundColor: ['#eab308', '#22c55e', '#ef4444'], // yellow, green, red
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: 'Status Jadwal Konseling', color: '#ffffff' }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
 
             } catch(e) {
                 console.log("Stats error", e);
@@ -655,7 +840,7 @@
 
         function navTo(page) {
             closeSidebarMobile();
-            ['dashboard', 'profil', 'list'].forEach(id => document.getElementById('page-' + id).classList.add('hidden'));
+           ['dashboard', 'profil', 'list', 'chatbot'].forEach(id => document.getElementById('page-' + id).classList.add('hidden'));
             document.getElementById('page-' + page).classList.remove('hidden');
             if(page === 'profil') loadProfilData();
             if(page === 'dashboard') refreshDashboardStats(); 
@@ -1520,6 +1705,121 @@
             doc.save(`Laporan_${currentType}_${dateStr}.pdf`);
             document.getElementById('modal-print').classList.add('hidden');
         }
+		
+		// --- LOGIKA CHATBOT RUBO (GEMINI AI) ---
+        async function kirimPesanRuBo(e) {
+            e.preventDefault();
+            const inputEl = document.getElementById('rubo-input');
+            const msg = inputEl.value.trim();
+            if(!msg) return;
+
+            const chatBox = document.getElementById('rubo-chat-box');
+            const btnSend = document.getElementById('btn-rubo-send');
+            
+            // 1. Tampilkan Bubble Siswa (Kanan)
+            chatBox.innerHTML += `
+            <div class="chat-bubble chat-right bg-gradient-to-br from-teal-600 to-teal-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tr-sm text-white !p-4 ml-auto text-sm">
+                ${escapeHtml(msg)}
+            </div>`;
+            
+            inputEl.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 2. Kunci Input & Tampilkan "RuBo sedang mengetik..."
+            inputEl.disabled = true;
+            btnSend.disabled = true;
+            btnSend.innerHTML = '<div class="loader !w-5 !h-5 !border-2 border-white border-t-transparent"></div>';
+            
+            const typingId = 'rubo-typing-' + Date.now();
+            chatBox.innerHTML += `
+            <div id="${typingId}" class="chat-bubble chat-left bg-slate-800/80 border border-slate-700/50 shadow-md !max-w-[85%] !rounded-2xl !rounded-tl-sm text-teal-500 italic text-xs flex items-center gap-2 !p-3">
+                <i class="fa-solid fa-robot animate-bounce"></i> RuBo sedang memikirkan jawaban...
+            </div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 3. Panggil API ke Backend Google Apps Script
+            const res = await callAPI({ action: 'chatGemini', pesan: msg });
+            
+            // 4. Hapus tulisan "sedang mengetik"
+            const typingEl = document.getElementById(typingId);
+            if(typingEl) typingEl.remove();
+            
+            // 5. Tampilkan Balasan RuBo
+            if(res.status === 'success') {
+                // Konversi bintang markdown dari Gemini jadi teks tebal HTML
+                let finalReply = escapeHtml(res.reply).replace(/\*\*(.*?)\*\*/g, '<strong class="text-teal-300">$1</strong>');
+                chatBox.innerHTML += `
+                <div class="chat-bubble chat-left bg-slate-800 border border-slate-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tl-sm text-slate-200 leading-relaxed text-sm !p-4">
+                    <div class="font-bold text-xs text-teal-400 mb-2 flex items-center gap-2"><i class="fa-solid fa-robot"></i> RuBo</div>
+                    ${finalReply}
+                </div>`;
+            } else {
+                chatBox.innerHTML += `
+                <div class="chat-bubble chat-left bg-red-900/20 border border-red-900/50 shadow-md !max-w-[85%] !rounded-2xl !rounded-tl-sm text-red-400 text-sm !p-4">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Waduh, otak mekanik RuBo lagi agak pusing nih (Koneksi error). Coba ketik lagi ya sahabat!
+                </div>`;
+            }
+            
+            // 6. Buka kembali kuncian input
+            inputEl.disabled = false;
+            btnSend.disabled = false;
+            btnSend.innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
+            inputEl.focus();
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+		function tampilkanMotivasi() {
+			// Daftar Motivasi Pagi (50 Kata)
+			const pagi = [
+				"Awali hari dengan bismillah dan senyuman.", "Hari ini kesempatan baru menjadi lebih baik.", "Jangan biarkan mimpimu hanya bunga tidur.", "Fokus pada tujuan, abaikan gangguan.", "Setiap pagi adalah halaman kosong.", "Semangatmu pagi ini penentu suksesmu.", "Bangun dengan tekad, tidur dengan puas.", "Jangan bandingkan prosesmu dengan orang lain.", "Sukses mulai dari langkah kecil pagi ini.", "Jadilah sinar matahari bagi sekitarmu.",
+				"Masa depanmu ditentukan hari ini.", "Berhenti berharap, mulailah bertindak.", "Pendidikan adalah tiket masa depan.", "Tidak ada yang mustahil bagi yang berusaha.", "Kesalahan kemarin adalah pelajaran hari ini.", "Jangan takut gagal, takutlah tak mencoba.", "Disiplin jembatan cita-cita dan capaian.", "Kamu lebih kuat dari yang kamu bayangkan.", "Pikiran positif pagi mengubah seluruh hari.", "Kerja keras tidak mengkhianati hasil.",
+				"Keberuntungan adalah persiapan dan kesempatan.", "Jangan tunggu waktu tepat, ciptakan!", "Ilmu adalah harta yang paling setia.", "Jadilah pribadi berani hadapi tantangan.", "Sukses adalah persiapan dan kerja keras.", "Setiap tantangan adalah peluang tumbuh.", "Berikan yang terbaik dalam setiap hal.", "Hargai setiap detik waktumu di sekolah.", "Mimpi besar dimulai dari konsistensi.", "Jangan menyerah, hal besar butuh waktu.",
+				"Fokuslah pada solusi, bukan masalah.", "Kamu diciptakan untuk hal besar.", "Energi positif menarik hal positif.", "Belajar investasi terbaik masa depanmu.", "Jadilah versi terbaik dirimu hari ini.", "Keyakinan adalah kunci kesuksesan.", "Teruslah bergerak maju meski pelan.", "Keberanian adalah bertindak meski takut.", "Jadikan hari ini langkah menuju impian.", "Dunia butuh bakat dan kebaikanmu.",
+				"Motivasi membuatmu mulai, kebiasaan membuatmu terus.", "Lakukan sesuatu yang membanggakan masa depanmu.", "Hambatan tak bisa hentikan kemauan.", "Berpikirlah besar, mulailah dari kecil.", "Sukses bukan soal cepat, tapi konsisten.", "Hari ini milikmu, taklukkan!", "Hidup tak pernah berhenti mengajar.", "Kebaikan hari ini berbuah manis esok.", "Siapkan diri jadi pemimpin masa depan.", "Masa depan cerah sudah menantimu!"
+			];
+
+			// Daftar Motivasi Malam (50 Kata)
+			const malam = [
+				"Terima kasih untuk hari ini. Kamu hebat!", "Lepaskan beban, istirahatkan ragamu.", "Waktunya merenung dan mensyukuri pencapaian.", "Besok kesempatan baru, tidurlah tenang.", "Jangan biarkan kegagalan hantui tidurmu.", "Ambil hikmahnya, lupakan lelahnya.", "Tidur adalah investasi energi besok.", "Kamu sudah lakukan yang terbaik hari ini.", "Bintang tak bersinar tanpa kegelapan.", "Biarkan mimpi membawamu ke tempat indah.",
+				"Apresiasi dirimu sebelum menutup mata.", "Hari berat berlalu, waktunya tenang.", "Tidurlah damai, masa depan menantimu.", "Kegagalan hari ini bukan akhir.", "Esok adalah lembaran baru yang bersih.", "Tidurlah nyenyak, pahlawan butuh jeda.", "Mimpimu inspirasi untuk esok hari.", "Evaluasi diri dengan jujur malam ini.", "Hapus air mata, matahari terbit lagi.", "Ketenangan malam obat jiwa yang lelah.",
+				"Syukuri hal kecil yang terjadi hari ini.", "Istirahatlah untuk perjuangan esok.", "Malam tenang membawa pikir jernih.", "Maafkan dirimu sebelum terlelap.", "Dunia lebih baik setelah istirahat.", "Mimpilah tinggi, bangunlah meraihnya.", "Jangan keras pada diri, kamu luar biasa.", "Malam adalah pelukan untuk yang lelah.", "Napasmu membawa kedamaian malam ini.", "Tidurlah, esok petualangan baru.",
+				"Berdamailah dengan hari ini.", "Malam keajaiban mimpi dimulai.", "Simpan semangat untuk fajar datang.", "Terima kasih sudah bertahan sejauh ini.", "Tutup mata, lepaskan kekhawatiran.", "Kegelapan malam pesan pentingnya cahaya.", "Semoga istirahatmu pulih sempurna.", "Waktu terbaik bicara dengan hati.", "Besok dunia harus ditaklukkan lagi.", "Bintang di langit adalah harapan esok.",
+				"Hargai waktu tidurmu.", "Kedamaian hati mulai dari tidur cukup.", "Hitung keberuntunganmu malam ini.", "Esok ada jalan bagi yang tak menyerah.", "Beban terasa ringan besok pagi.", "Batas antara lelah dan harapan baru.", "Tidur nyenyak membuat semua lebih baik.", "Jiwa yang kuat tetap butuh jeda.", "Mimpilah sukses, bangunlah wujudkan.", "Sampai jumpa di fajar esok!"
+			];
+
+			const jam = new Date().getHours();
+			const index = (new Date().getDate()) % 50; 
+			const element = document.getElementById('quote-hari-ini');
+			
+			if (element) {
+				if (jam >= 5 && jam < 18) {
+					element.innerText = `"${pagi[index]}"`;
+				} else {
+					element.innerText = `"${malam[index]}"`;
+				}
+			}
+		}
+		
+		function aturVibeSekolah() {
+            const jam = new Date().getHours();
+            const body = document.body;
+
+            if (jam >= 6 && jam < 11) {
+                // PAGI: Cerah (Indigo ke Biru)
+                body.style.background = "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)";
+            } else if (jam >= 11 && jam < 16) {
+                // SIANG: Fokus (Slate 900 - Warna Standar)
+                body.style.background = "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)";
+            } else if (jam >= 16 && jam < 19) {
+                // SORE: Sunset (Dark Slate ke ungu gelap)
+                body.style.background = "linear-gradient(135deg, #020617 0%, #1e1b4b 100%)";
+            } else {
+                // MALAM: Midnight (Hitam Pekat)
+                body.style.background = "linear-gradient(135deg, #000000 0%, #0f172a 100%)";
+            }
+            body.style.backgroundAttachment = "fixed";
+        }
+		
     </script>
 </body>
 </html>

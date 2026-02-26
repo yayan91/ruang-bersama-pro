@@ -1276,15 +1276,15 @@
                         <div><label class="text-xs text-slate-400 font-bold">KELAS</label><input value="Auto" class="w-full p-3 bg-slate-900 rounded-xl border-none text-sm" readonly></div>
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 font-bold">GURU</label>
+                        <label class="text-xs text-slate-400 font-bold">PILIH GURU</label>
                         <select name="guru" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700">${opts}</select>
                     </div>
                     <div><label class="text-xs text-slate-400 font-bold">TOPIK</label><input name="topik" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700"></div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div><label class="text-xs text-slate-400 font-bold">WAKTU</label><input type="datetime-local" name="jadwal" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700 text-sm"></div>
-                        <div><label class="text-xs text-slate-400 font-bold">LOKASI</label><select name="lokasi" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700 text-sm"><option>Ruang BK</option><option>Kantor</option><option>Taman</option></select></div>
+                        <div><label class="text-xs text-slate-400 font-bold">WAKTU BOKING</label><input type="datetime-local" name="jadwal" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700 text-sm"></div>
+                        <div><label class="text-xs text-slate-400 font-bold">LOKASI PERTEMUAN</label><select name="lokasi" class="w-full p-3 bg-slate-800 rounded-xl border-slate-700 text-sm"><option>Ruang BK</option><option>Ruang Guru</option><option>Kelas</option><option>Taman</option><option>Via Whatsapp</option><option>Curhat Online</option><option>Kantor</option></select></div>
                     </div>
-                    <button class="w-full bg-pink-600 p-3 rounded-xl text-white font-bold hover:bg-pink-700">Ajukan</button>
+                    <button class="w-full bg-pink-600 p-3 rounded-xl text-white font-bold hover:bg-pink-700">Ajukan Jadwal</button>
                 </form>`;
             }
             document.getElementById('modal-content').innerHTML = html;
@@ -1823,3 +1823,4 @@
     </script>
 </body>
 </html>
+

@@ -289,6 +289,14 @@
                     </div>
                 </header>
 				
+				<div id="radar-prioritas-guru" class="hidden"></div>
+				
+				<div id="radar-siswa-rawan" class="hidden w-full"></div>
+				
+				<div id="dompet-tiket-siswa" class="hidden w-full mb-6 overflow-x-auto pb-4 custom-scrollbar snap-x snap-mandatory flex gap-4"></div>
+				
+				<div id="tiket-konseling-siswa" class="hidden w-full"></div>
+				
 				<div class="bg-indigo-900/30 border border-indigo-500/20 rounded-xl p-3 mb-6 flex gap-3 items-center animate-pulse-slow">
 					<div class="text-xl">💡</div>
 					<p id="quote-hari-ini" class="text-xs md:text-sm text-indigo-200 italic leading-relaxed">
@@ -579,6 +587,31 @@
         </div>
     </div>
 
+	<div id="btn-napas" class="fixed bottom-32 right-4 md:right-6 w-14 h-14 bg-gradient-to-br from-teal-400 to-emerald-600 rounded-full shadow-[0_0_15px_rgba(20,184,166,0.8)] border border-teal-300/50 flex items-center justify-center cursor-pointer z-[9999] text-white text-2xl hover:scale-105 transition-transform" style="touch-action: none;" title="Ruang Napas (Tarik & Geser)">
+        <i class="fa-solid fa-wind drop-shadow-md"></i>
+    </div>
+
+    <div id="modal-napas" class="fixed inset-0 bg-slate-900/95 z-[100] hidden flex-col items-center justify-center backdrop-blur-lg">
+        <button onclick="tutupNapas()" class="absolute top-8 right-8 text-slate-500 hover:text-white text-4xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+        
+        <div class="text-center mb-8">
+            <h2 class="text-teal-400 text-2xl font-black tracking-[0.3em] uppercase drop-shadow-lg mb-2"><i class="fa-solid fa-leaf mr-2"></i> Ruang Napas</h2>
+            <p class="text-slate-400 text-sm italic">Ikuti irama lingkaran untuk menenangkan pikiranmu.</p>
+        </div>
+        
+        <div class="relative w-72 h-72 flex items-center justify-center mb-8">
+            <div class="absolute w-64 h-64 border border-dashed border-teal-500/30 rounded-full"></div>
+            <div id="circle-napas" class="absolute w-20 h-20 bg-teal-500/20 border-2 border-teal-400 rounded-full transition-all ease-in-out"></div>
+            <div id="text-napas" class="z-10 text-white text-xl font-medium drop-shadow-xl text-center">Sudah siap?</div>
+        </div>
+
+        <div class="flex gap-4 z-10 mt-2">
+            <button id="btn-mulai-napas" onclick="startPernapasan()" class="bg-teal-500 hover:bg-teal-400 text-white font-bold py-3 px-8 rounded-full shadow-[0_0_15px_rgba(20,184,166,0.5)] transition-transform hover:scale-105 active:scale-95 flex items-center gap-2"><i class="fa-solid fa-play"></i> Mulai Napas</button>
+            
+            <button id="btn-selesai-napas" onclick="akhiriPernapasan()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center gap-2 hidden"><i class="fa-solid fa-check"></i> Selesai</button>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT -->
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw7DtqlbTpoVbObVGdvEDQmJ5N_LToZnz_ynv7SlGvMX95Ip9EDwZ_2Ox9GhMJwleut/exec"; 
@@ -851,12 +884,195 @@
                 const pKonseling = callAPI({ action: 'getData', type: 'booking', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
                 const pPrestasi = callAPI({ action: 'getData', type: 'prestasi', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
 				const pPelanggaran = callAPI({ action: 'getData', type: 'pelanggaran', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
+				const pCurhat = callAPI({ action: 'getData', type: 'curhat', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
 
-                const [rLaporan, rKonseling, rPrestasi, rPelanggaran] = await Promise.all([pLaporan, pKonseling, pPrestasi, pPelanggaran]);
+                const [rLaporan, rKonseling, rPrestasi, rPelanggaran, rCurhat] = await Promise.all([pLaporan, pKonseling, pPrestasi, pPelanggaran, pCurhat]);
 				
 				globalPrestasi = rPrestasi.status === 'success' ? rPrestasi.data : [];
                 globalPelanggaran = rPelanggaran.status === 'success' ? rPelanggaran.data : [];
                 initPohonKarakter(); // Panggil Tukang Kebunnya!
+				
+				// --- FITUR RADAR PRIORITAS GURU ---
+                const radarContainer = document.getElementById('radar-prioritas-guru');
+                if (radarContainer && currentUser.role === 'guru') {
+                    let pendingBully = 0;
+                    if (rLaporan.status === 'success') {
+                        // Di backend, status laporan bullying ada di index ke-5
+                        pendingBully = rLaporan.data.filter(d => d[5] === 'Menunggu').length;
+                    }
+
+                    let pendingKonseling = 0;
+                    if (rKonseling.status === 'success') {
+                        // Di backend, status konseling ada di index ke-6
+                        pendingKonseling = rKonseling.data.filter(d => d[6].includes('Menunggu')).length;
+                    }
+
+                    if (pendingBully > 0 || pendingKonseling > 0) {
+                        // Jika ada tugas menumpuk -> Muncul Kotak Merah Peringatan
+                        radarContainer.innerHTML = `
+                            <div class="bg-red-900/30 border border-red-500/50 rounded-xl p-4 mb-6 shadow-lg relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full -mr-10 -mt-10 animate-pulse"></div>
+                                <h3 class="text-red-400 font-bold flex items-center gap-2 mb-3"><i class="fa-solid fa-triangle-exclamation animate-bounce"></i> Radar Prioritas Hari Ini</h3>
+                                <ul class="text-sm text-red-200/90 space-y-2 ml-6 list-disc marker:text-red-500">
+                                    ${pendingBully > 0 ? `<li>Ada <strong class="text-white bg-red-600 px-2 py-0.5 rounded shadow-sm">${pendingBully} Laporan Pengaduan</strong> yang belum ditanggapi!</li>` : ''}
+                                    ${pendingKonseling > 0 ? `<li>Ada <strong class="text-white bg-orange-500 px-2 py-0.5 rounded shadow-sm">${pendingKonseling} Jadwal Konseling</strong> menunggu konfirmasi!</li>` : ''}
+                                </ul>
+                                <div class="mt-4 text-[11px] text-red-300/70 italic border-t border-red-500/20 pt-2"><i class="fa-solid fa-hand-pointer mr-1"></i> Silakan cek menu "Data Pengaduan" atau "Jadwal Konseling" untuk menindaklanjuti.</div>
+                            </div>
+                        `;
+                    } else {
+                        // Jika sudah beres semua -> Muncul Kotak Hijau Aman
+                        radarContainer.innerHTML = `
+                            <div class="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4 mb-6 shadow-sm flex items-center gap-4">
+                                <div class="text-emerald-400 text-3xl drop-shadow-md"><i class="fa-solid fa-shield-check"></i></div>
+                                <div>
+                                    <h3 class="text-emerald-400 font-bold text-sm tracking-wide">Semua Terkendali!</h3>
+                                    <p class="text-xs text-emerald-200/70 mt-0.5">Tidak ada laporan atau permintaan konseling yang tertunda. Kerja bagus, ${currentUser.nama.split(' ')[0]}!</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    radarContainer.classList.remove('hidden');
+                }
+                // ----------------------------------
+				
+				// --- FITUR RADAR SISWA RAWAN (KHUSUS GURU) ---
+                const rawanContainer = document.getElementById('radar-siswa-rawan');
+                if (rawanContainer && currentUser.role === 'guru') {
+                    let siswaRawan = [];
+                    
+                    // Hitung skor semua siswa diam-diam
+                    if (typeof siswaList !== 'undefined' && siswaList.length > 0) {
+                        siswaList.forEach(s => {
+                            const skorObj = hitungSkorPohon(globalPrestasi, globalPelanggaran, s.nisn);
+                            
+                            // SYARAT BARU: Skor Minus (Layu) DAN Minimal punya 2 Pelanggaran
+                            if (skorObj.skor < 0 && skorObj.pelanggaran >= 2) {
+                                siswaRawan.push({
+                                    nama: s.nama, kelas: s.kelas, nisn: s.nisn, foto: s.foto,
+                                    prestasi: skorObj.prestasi, pelanggaran: skorObj.pelanggaran, skor: skorObj.skor
+                                });
+                            }
+                        });
+                        
+                        // Urutkan dari yang minusnya paling parah (TIDAK di-slice/dipotong lagi)
+                        siswaRawan.sort((a, b) => a.skor - b.skor);
+                    }
+
+                    if (siswaRawan.length > 0) {
+                        let listHTML = '';
+                        siswaRawan.forEach((s, index) => {
+                            listHTML += `
+                                <div class="flex items-center gap-3 p-3 bg-slate-800/80 rounded-xl border border-slate-700 hover:border-orange-500/50 transition duration-300">
+                                    <div class="text-lg font-black text-orange-500/30 w-5 text-center">#${index + 1}</div>
+                                    <img src="${resolveImg(s.foto)}" class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-slate-600 shadow-sm">
+                                    <div class="flex-1 overflow-hidden">
+                                        <h4 class="text-sm md:text-base font-bold text-white truncate">${s.nama}</h4>
+                                        <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-building text-slate-500 mr-1"></i>${s.kelas}</p>
+                                    </div>
+                                    <div class="text-right bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                                        <div class="text-xs font-bold text-red-400 mb-0.5"><i class="fa-solid fa-bug mr-1"></i> ${s.pelanggaran}</div>
+                                        <div class="text-[10px] text-emerald-400/70"><i class="fa-solid fa-droplet mr-1"></i> ${s.prestasi}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        rawanContainer.innerHTML = `
+                            <div class="bg-gradient-to-br from-slate-900 to-slate-800 border-t-4 border-orange-500 rounded-2xl p-4 md:p-6 mb-6 shadow-xl relative overflow-hidden">
+                                <div class="absolute -right-6 -top-6 text-orange-500/5 text-[100px]"><i class="fa-solid fa-radar"></i></div>
+                                <div class="flex items-center justify-between mb-2 relative z-10">
+                                    <h3 class="text-orange-400 font-bold flex items-center gap-2 text-base md:text-lg"><i class="fa-solid fa-tower-broadcast animate-pulse"></i> Radar Siswa Rawan</h3>
+                                    <span class="text-xs font-bold bg-orange-900/50 text-orange-300 px-3 py-1 rounded-full border border-orange-700/50 shadow-sm">${siswaRawan.length} Siswa</span>
+                                </div>
+                                <p class="text-xs md:text-sm text-slate-400 mb-5 relative z-10">Siswa di bawah ini memiliki <strong class="text-orange-300">minimal 2 pelanggaran</strong>. Mohon segera berikan bimbingan preventif.</p>
+                                
+                                <div class="space-y-3 relative z-10 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                                    ${listHTML}
+                                </div>
+                            </div>
+                        `;
+                        rawanContainer.classList.remove('hidden');
+                    } else {
+                        rawanContainer.classList.add('hidden');
+                    }
+                }
+                // ---------------------------------------------
+				
+				// --- FITUR DOMPET TIKET VIP (KHUSUS SISWA) ---
+                const dompetContainer = document.getElementById('dompet-tiket-siswa');
+                if (dompetContainer && currentUser.role === 'siswa') {
+                    let tiketHTML = '';
+                    let hasTiket = false;
+
+                    // Fungsi Pembantu Cetak Desain Tiket
+                    function cetakTiket(judul, guru, isi, waktuTempat, status, statusColor, bgGradient, icon) {
+                        return `
+                        <div class="snap-center shrink-0 w-[85%] sm:w-[300px] relative overflow-hidden rounded-xl border ${bgGradient} bg-gradient-to-r shadow-lg flex flex-col transition-transform hover:scale-[1.02] duration-300">
+                            <div class="p-3 md:p-4 border-b border-dashed border-slate-400/30 relative">
+                                <div class="absolute -left-3 top-full -translate-y-1/2 w-6 h-6 bg-[#0f172a] rounded-full shadow-inner"></div>
+                                <div class="absolute -right-3 top-full -translate-y-1/2 w-6 h-6 bg-[#0f172a] rounded-full shadow-inner"></div>
+                                <div class="flex justify-between items-start mb-1">
+                                    <div class="text-[10px] uppercase tracking-widest text-slate-300 font-bold"><i class="fa-solid ${icon} text-amber-400 mr-1 drop-shadow-md"></i> ${judul}</div>
+                                    <span class="${statusColor} text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-md leading-tight">${status}</span>
+                                </div>
+                                <h3 class="text-white font-black text-sm md:text-base truncate">${guru}</h3>
+                            </div>
+                            <div class="p-3 md:p-4 flex-1 flex flex-col justify-between bg-slate-800/30 backdrop-blur-sm">
+                                <p class="text-xs text-slate-300 italic mb-3 line-clamp-2">" ${isi} "</p>
+                                <div class="text-[10px] text-slate-400 font-medium bg-slate-900/50 inline-block px-2 py-1.5 rounded-md border border-slate-700/50 shadow-sm mt-auto w-fit">
+                                    <i class="fa-solid fa-clock text-emerald-400 mr-1"></i> ${waktuTempat}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }
+
+                    // 1. Cek Jadwal Konseling Aktif
+                    if (rKonseling.status === 'success') {
+                        const jadwalAktif = rKonseling.data.filter(d => d[6].includes('Menunggu') || d[6].includes('Diterima')).slice(0, 3);
+                        jadwalAktif.forEach(d => {
+                            hasTiket = true;
+                            const statusWarna = d[6].includes('Diterima') ? 'bg-emerald-500' : 'bg-blue-600';
+                            const bgWarna = d[6].includes('Diterima') ? 'from-emerald-900/60 to-teal-900/40 border-emerald-500/50' : 'from-indigo-900/60 to-blue-900/40 border-indigo-500/50';
+                            
+                            // --- MODIFIKASI FORMAT WAKTU & TEMPAT ---
+                            // d[4] adalah Jadwal Minta dari database
+                            const waktuDanTempat = d[4] + ' - Sesuai Lokasi Pilihanmu'; 
+                            
+                            tiketHTML += cetakTiket('Sesi Ngobrol VIP', d[3] === 'Semua Guru' ? 'Tim Guru BK' : d[3], d[5], waktuDanTempat, d[6], statusWarna, bgWarna, 'fa-comments');
+                        });
+                    }
+
+                    // 2. Cek Curhat Online Aktif
+                    if (rCurhat && rCurhat.status === 'success') {
+                        const curhatAktif = rCurhat.data.filter(d => d[8].includes('Belum Dibaca')).slice(0, 3);
+                        curhatAktif.forEach(d => {
+                            hasTiket = true;
+                            let cuplikan = d[4].length > 25 ? d[4].substring(0, 25) + '...' : d[4];
+                            tiketHTML += cetakTiket('Curhat Rahasia', d[3] === 'Semua Guru' ? 'Tim Guru BK' : d[3], cuplikan, d[1].split(' - ')[0] + ' - Via Aplikasi', d[8], 'bg-purple-600', 'from-purple-900/60 to-fuchsia-900/40 border-purple-500/50', 'fa-envelope');
+                        });
+                    }
+
+                    // 3. Cek Laporan Bullying Aktif
+                    if (rLaporan.status === 'success') {
+                        const laporanAktif = rLaporan.data.filter(d => d[5] === 'Menunggu' || d[5] === 'Diproses').slice(0, 3);
+                        laporanAktif.forEach(d => {
+                            hasTiket = true;
+                            const statusWarna = d[5] === 'Diproses' ? 'bg-orange-500' : 'bg-red-600';
+                            tiketHTML += cetakTiket('Laporan Keamanan', 'Tim Keamanan & BK', 'Laporan telah terekam aman di sistem.', d[1].split(' - ')[0] + ' - Identitas Dirahasiakan', d[5], statusWarna, 'from-orange-900/60 to-red-900/40 border-orange-500/50', 'fa-shield-halved');
+                        });
+                    }
+
+                    // Tampilkan Dompet jika ada isinya
+                    if (hasTiket) {
+                        dompetContainer.innerHTML = tiketHTML;
+                        dompetContainer.classList.remove('hidden');
+                    } else {
+                        dompetContainer.classList.add('hidden');
+                    }
+                }
+                // --------------------------------------------
 
                 if(rLaporan.status === 'success') document.getElementById('stat-laporan').innerText = rLaporan.data.length;
                 else document.getElementById('stat-laporan').innerText = "0";
@@ -2060,6 +2276,185 @@
                 document.querySelectorAll('.search-dropdown').forEach(d => d.classList.remove('show'));
             }
         });
+		
+		// ================= FITUR RUANG NAPAS =================
+        const btnNapas = document.getElementById('btn-napas');
+        let isDraggingNapas = false, startX, startY, initialX, initialY;
+
+        // --- 1. Logika Geser Tombol (Drag & Drop) ---
+        function dragStartNapas(e) {
+            initialX = btnNapas.offsetLeft;
+            initialY = btnNapas.offsetTop;
+            if (e.type === 'touchstart') { startX = e.touches[0].clientX; startY = e.touches[0].clientY; } 
+            else { startX = e.clientX; startY = e.clientY; }
+            isDraggingNapas = false;
+            
+            document.addEventListener('mousemove', dragNapas);
+            document.addEventListener('touchmove', dragNapas, {passive: false});
+            document.addEventListener('mouseup', dragEndNapas);
+            document.addEventListener('touchend', dragEndNapas);
+        }
+
+        function dragNapas(e) {
+            let currentX, currentY;
+            if (e.type === 'touchmove') { currentX = e.touches[0].clientX; currentY = e.touches[0].clientY; } 
+            else { currentX = e.clientX; currentY = e.clientY; }
+            
+            let dx = currentX - startX; let dy = currentY - startY;
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) isDraggingNapas = true;
+
+            if (isDraggingNapas) {
+                e.preventDefault(); 
+                btnNapas.style.left = (initialX + dx) + 'px';
+                btnNapas.style.top = (initialY + dy) + 'px';
+                btnNapas.style.right = 'auto'; 
+                btnNapas.style.bottom = 'auto'; 
+            }
+        }
+
+        function dragEndNapas() {
+            document.removeEventListener('mousemove', dragNapas); document.removeEventListener('touchmove', dragNapas);
+            document.removeEventListener('mouseup', dragEndNapas); document.removeEventListener('touchend', dragEndNapas);
+        }
+
+        btnNapas.addEventListener('mousedown', dragStartNapas);
+        btnNapas.addEventListener('touchstart', dragStartNapas, {passive: false});
+        
+        btnNapas.addEventListener('click', (e) => {
+            if (isDraggingNapas) { e.preventDefault(); return; }
+            bukaNapas();
+        });
+
+        // --- 2. Logika Hitungan Napas & Tombol Aksi ---
+        let napasInterval, napasTimeout1, napasTimeout2, napasTimeout3;
+
+        function bukaNapas() {
+            // Bersihkan sisa animasi kalau ada
+            clearInterval(napasInterval); 
+            clearTimeout(napasTimeout1); clearTimeout(napasTimeout2); clearTimeout(napasTimeout3);
+
+            document.getElementById('modal-napas').classList.remove('hidden');
+            document.getElementById('modal-napas').classList.add('flex');
+            
+            // Kondisi Diam Menunggu Diklik
+            document.getElementById('text-napas').innerText = "Sudah siap?";
+            document.getElementById('text-napas').className = "z-10 text-white text-2xl font-bold drop-shadow-xl text-center";
+            document.getElementById('circle-napas').style.transitionDuration = "0.5s";
+            document.getElementById('circle-napas').style.transform = "scale(1)";
+            document.getElementById('circle-napas').style.backgroundColor = "rgba(20, 184, 166, 0.2)";
+            
+            document.getElementById('btn-mulai-napas').classList.remove('hidden');
+            document.getElementById('btn-selesai-napas').classList.add('hidden');
+        }
+
+        function startPernapasan() {
+            document.getElementById('btn-mulai-napas').classList.add('hidden');
+            document.getElementById('btn-selesai-napas').classList.remove('hidden');
+            
+            document.getElementById('text-napas').innerText = "Bersiap...";
+            document.getElementById('text-napas').classList.add('animate-pulse');
+            
+            napasTimeout3 = setTimeout(() => {
+                document.getElementById('text-napas').classList.remove('animate-pulse');
+                mulaiSiklusNapas();
+            }, 2000); 
+        }
+
+        function akhiriPernapasan() {
+            // Hentikan mesin napas
+            clearInterval(napasInterval); 
+            clearTimeout(napasTimeout1); clearTimeout(napasTimeout2); clearTimeout(napasTimeout3);
+            
+            // Tutup layar napas utama terlebih dahulu
+            tutupNapas(); 
+
+            // Munculkan Custom Pop-Up Estetik
+            const alertBox = document.createElement('div');
+            alertBox.className = "fixed inset-0 bg-slate-900/80 z-[9999] flex items-center justify-center backdrop-blur-sm p-4 transition-opacity duration-300";
+            
+            // Desain Pertanyaan Awal
+            alertBox.innerHTML = `
+                <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl transform transition-all scale-100 text-center">
+                    <div class="w-16 h-16 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-teal-400">
+                        <i class="fa-solid fa-spa text-teal-400 text-3xl"></i>
+                    </div>
+                    <h3 class="text-white text-xl font-bold mb-2">Kerja Bagus! ✨</h3>
+                    <p class="text-slate-300 text-sm mb-6">Apakah perasaanmu sudah lebih tenang dan membaik sekarang?</p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="btn-napas-belum" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">Belum 🫂</button>
+                        <button id="btn-napas-sudah" class="flex-1 bg-teal-500 hover:bg-teal-400 text-white font-semibold py-2.5 rounded-xl shadow-lg shadow-teal-500/30 transition-colors text-sm">Sudah 😊</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(alertBox);
+
+            // Jika siswa klik "Sudah"
+            document.getElementById('btn-napas-sudah').onclick = () => {
+                alertBox.innerHTML = `
+                    <div class="bg-slate-800 border border-teal-500/50 rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl text-center">
+                        <div class="text-6xl mb-4 text-teal-400 drop-shadow-lg animate-bounce">😊</div>
+                        <h3 class="text-white text-xl font-bold mb-2">Syukurlah!</h3>
+                        <p class="text-slate-300 text-sm mb-6">Jangan lupa tersenyum hari ini ya. Kamu anak hebat!</p>
+                        <button onclick="this.closest('.fixed').remove()" class="bg-teal-500 hover:bg-teal-400 text-white font-bold py-2.5 px-8 rounded-xl transition-colors w-full">Kembali</button>
+                    </div>
+                `;
+            };
+
+            // Jika siswa klik "Belum"
+            document.getElementById('btn-napas-belum').onclick = () => {
+                alertBox.innerHTML = `
+                    <div class="bg-slate-800 border border-indigo-500/50 rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl text-center">
+                        <div class="text-6xl mb-4 text-indigo-400 drop-shadow-lg">🫂</div>
+                        <h3 class="text-white text-xl font-bold mb-2">Tidak Apa-apa...</h3>
+                        <p class="text-slate-300 text-sm mb-6">Ambil waktumu. Jangan ragu untuk klik menu <strong class="text-indigo-300">Curhat Online</strong> jika butuh teman cerita.</p>
+                        <button onclick="this.closest('.fixed').remove()" class="bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-2.5 px-8 rounded-xl transition-colors w-full">Tutup</button>
+                    </div>
+                `;
+            };
+        }
+
+        function tutupNapas() {
+            document.getElementById('modal-napas').classList.add('hidden');
+            document.getElementById('modal-napas').classList.remove('flex');
+            clearInterval(napasInterval); 
+            clearTimeout(napasTimeout1); clearTimeout(napasTimeout2); clearTimeout(napasTimeout3);
+        }
+
+        function mulaiSiklusNapas() {
+            const circle = document.getElementById('circle-napas');
+            const text = document.getElementById('text-napas');
+            
+            function siklus() {
+                // 1. Tarik Napas (4 Detik)
+                text.innerText = "Tarik napas...";
+                text.className = "z-10 text-teal-300 text-3xl font-black drop-shadow-xl text-center transition-all duration-500 scale-110";
+                circle.style.transitionDuration = "4s";
+                circle.style.transform = "scale(3.2)"; 
+                circle.style.backgroundColor = "rgba(20, 184, 166, 0.5)"; 
+                
+                napasTimeout1 = setTimeout(() => {
+                    // 2. Tahan Napas (5 Detik)
+                    text.innerText = "Tahan...";
+                    text.className = "z-10 text-white text-3xl font-black drop-shadow-xl text-center transition-all duration-500 scale-100";
+                    circle.style.transitionDuration = "5s"; 
+                    circle.style.backgroundColor = "rgba(20, 184, 166, 0.8)"; 
+                    
+                    napasTimeout2 = setTimeout(() => {
+                        // 3. Hembuskan Napas (6 Detik)
+                        text.innerText = "Hembuskan lewat Mulut...";
+                        text.className = "z-10 text-emerald-300 text-2xl font-black drop-shadow-xl text-center transition-all duration-500 scale-95";
+                        circle.style.transitionDuration = "6s";
+                        circle.style.transform = "scale(1)"; 
+                        circle.style.backgroundColor = "rgba(20, 184, 166, 0.1)";
+                        
+                    }, 5000); // Tunggu 5 detik (Fase Tahan)
+                }, 4000); // Tunggu 4 detik (Fase Tarik)
+            }
+            
+            siklus(); 
+            napasInterval = setInterval(siklus, 15000); // Total 4+5+6 = 15 Detik
+        }
+        // =====================================================
 		
     </script>
 </body>

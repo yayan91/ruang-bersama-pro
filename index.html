@@ -103,6 +103,22 @@
 			transition: background-color 1.5s ease, color 1.5s ease;
 		}
 		
+		/* Animasi Pohon Bergoyang */
+        @keyframes goyangPohon { 
+            0%, 100% { transform: rotate(-5deg); } 
+            50% { transform: rotate(5deg); } 
+        }
+        .goyang-pohon { 
+            display: inline-block; 
+            animation: goyangPohon 4s ease-in-out infinite; 
+            transform-origin: bottom center; /* Goyangnya dari akar, bukan dari tengah */
+        }
+		
+		/* Kotak Smart Search Siswa */
+        .search-container { position: relative; }
+        .search-dropdown { max-height: 200px; overflow-y: auto; position: absolute; width: 100%; z-index: 100; display: none; }
+        .search-dropdown.show { display: block; }
+		
     </style>
 </head>
 <body class="antialiased overflow-hidden font-sans selection:bg-indigo-500 selection:text-white">
@@ -279,6 +295,9 @@
 						Memuat kata mutiara hari ini...
 					</p>
 				</div>
+				
+				<div id="pohon-karakter-container" class="glass-card p-6 md:p-8 rounded-2xl border-b-4 border-emerald-500 mb-6 flex flex-col items-center justify-center text-center relative overflow-hidden hidden">
+					</div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="glass-card p-6 rounded-2xl border-b-4 border-indigo-500">
@@ -433,13 +452,19 @@
                         </div>
                     </div>
                     
-                    <button onclick="document.getElementById('rubo-chat-box').innerHTML = ''" class="flex items-center gap-2 bg-slate-800 hover:bg-red-900/20 text-slate-400 hover:text-red-400 px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 hover:border-red-900/50 transition-all duration-300">
+                    <button onclick="bersihkanChatRuBo()" class="flex items-center gap-2 bg-slate-800 hover:bg-red-900/20 text-slate-400 hover:text-red-400 px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 hover:border-red-900/50 transition-all duration-300">
                         <i class="fa-solid fa-broom"></i>
                         <span class="hidden md:block">Bersihkan Chat</span>
                     </button>
                 </div>
 
                 <div class="glass-card flex-1 rounded-2xl border-t-2 border-teal-500 bg-[#0f172a] flex flex-col shadow-xl overflow-hidden min-h-0">
+				<div class="m-4 mb-0 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-xl shadow-sm text-slate-300 text-xs leading-relaxed shrink-0 relative overflow-hidden">
+					<div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+					<div class="font-bold text-indigo-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-lock"></i> Ruang Aman RuBo</div>
+					Hai Sahabat RuBo! Obrolanmu dengan RuBo <strong>100% rahasia</strong> dan hanya disimpan di memori perangkat ini yah (<em>Local Storage</em>).<br>
+					<span class="text-teal-400 mt-1 inline-block font-medium"><i class="fa-solid fa-brain"></i> Info: RuBo hanya mengingat <strong>30 pesan terakhir yah</strong>. Klik "Bersihkan Chat" untuk menghapus jejak!</span>
+				</div>
                     <div id="rubo-chat-box" class="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-3">
                         <div class="chat-bubble chat-left bg-slate-800 border border-slate-700 shadow-sm !max-w-[85%] !rounded-2xl !rounded-tl-sm !p-3">
                             <div class="font-bold text-[10px] text-teal-400 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-robot"></i> RuBo</div>
@@ -673,7 +698,16 @@
         function showApp() {
             document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-app').classList.remove('hidden');
             document.getElementById('nav-nama').innerText = currentUser.nama; document.getElementById('dash-nama').innerText = currentUser.nama;
-            document.getElementById('nav-role').innerText = currentUser.role.toUpperCase();
+            // Menyesuaikan tampilan Role/Tugas di Sidebar
+            let tampilanRole = "";
+            if (currentUser.role === 'guru') {
+                // Jika Guru, tampilkan Tugasnya (misal: Guru BK, Kepsek, dll)
+                tampilanRole = currentUser.tugas ? currentUser.tugas.toUpperCase() : "GURU";
+            } else {
+                // Jika Siswa, tampilkan Siswa beserta Kelasnya
+                tampilanRole = currentUser.kelas ? `SISWA - ${currentUser.kelas}` : "SISWA";
+            }
+            document.getElementById('nav-role').innerText = tampilanRole;
             document.getElementById('nav-foto').src = resolveImg(currentUser.foto);
             document.getElementById('menu-guru-wrapper').classList.add('hidden'); document.getElementById('menu-siswa-wrapper').classList.add('hidden');
             
@@ -690,6 +724,114 @@
 		tampilkanMotivasi();
 		
 		aturVibeSekolah();
+		
+		// --- FITUR POHON KARAKTER ---
+        let globalPrestasi = [];
+        let globalPelanggaran = [];
+
+        function hitungSkorPohon(prestasiList, pelanggaranList, nisn) {
+            let jmlPrestasi = prestasiList.length;
+            let jmlPelanggaran = pelanggaranList.length;
+            
+            // Filter khusus untuk NISN yang dipilih (baik siswa sendiri atau pilihan guru)
+            if (nisn) {
+                // Di data kita, index [3] biasanya berisi NISN siswa
+                jmlPrestasi = prestasiList.filter(p => p[3] == nisn).length;
+                jmlPelanggaran = pelanggaranList.filter(p => p[3] == nisn).length; 
+            }
+            
+            return {
+                prestasi: jmlPrestasi,
+                pelanggaran: jmlPelanggaran,
+                skor: jmlPrestasi - jmlPelanggaran
+            };
+        }
+
+        function renderBentukPohon(skorObj) {
+            let emoji = '🌱'; let warna = 'text-green-400'; let namaFase = 'Fase Tunas';
+            let pesan = 'Tunas baru! Yuk siram dengan prestasi dan perbuatan baik.';
+
+            if (skorObj.skor <= -3) {
+                emoji = '🥀'; warna = 'text-red-500'; namaFase = 'Fase Layu Kritis';
+                pesan = 'Pohon karaktermu sedang kekeringan, Sahabat. Yuk, perbaiki diri dan siram dengan perbuatan baik!';
+            } else if (skorObj.skor === -1 || skorObj.skor === -2) {
+                emoji = '🍂'; warna = 'text-orange-400'; namaFase = 'Fase Gugur';
+                pesan = 'Awas, daun pohonmu mulai berguguran. Kurangi masalah dan mulai fokus ke hal positif ya!';
+            } else if (skorObj.skor >= 1 && skorObj.skor <= 3) {
+                emoji = '🌳'; warna = 'text-emerald-500'; namaFase = 'Fase Rindang';
+                pesan = 'Wah, pohonmu tumbuh rindang dan kuat! Pertahankan karakter baikmu.';
+            } else if (skorObj.skor >= 4) {
+                emoji = '🍎'; warna = 'text-yellow-400'; namaFase = 'Fase Panen Emas';
+                pesan = 'Luar biasa! Pohon karaktermu berbuah lebat berkat prestasimu. Terus pertahankan ya!';
+            }
+
+            return `
+                <div class="text-[90px] md:text-[120px] goyang-pohon drop-shadow-2xl leading-none mb-4 transition-all duration-500 cursor-pointer hover:scale-110" title="${namaFase}">${emoji}</div>
+                <h3 class="font-black text-xl md:text-2xl ${warna} uppercase tracking-widest mb-2">${namaFase}</h3>
+                <p class="text-sm text-slate-300 max-w-lg mx-auto italic">"${pesan}"</p>
+                <div class="flex gap-4 justify-center mt-5">
+                    <span class="text-xs font-bold text-green-400 bg-green-900/30 px-4 py-2 rounded-full border border-green-800 shadow-sm"><i class="fa-solid fa-droplet"></i> ${skorObj.prestasi} Pupuk (Prestasi)</span>
+                    <span class="text-xs font-bold text-red-400 bg-red-900/30 px-4 py-2 rounded-full border border-red-800 shadow-sm"><i class="fa-solid fa-bug"></i> ${skorObj.pelanggaran} Hama (Pelanggaran)</span>
+                </div>
+            `;
+        }
+
+        function initPohonKarakter() {
+            const container = document.getElementById('pohon-karakter-container');
+            if (!container) return;
+            container.classList.remove('hidden');
+
+            if (currentUser.role === 'siswa') {
+                // Tampilan Siswa: Langsung muncul pohon miliknya
+                const skorObj = hitungSkorPohon(globalPrestasi, globalPelanggaran, currentUser.id_unik);
+                container.innerHTML = `
+                    <div class="absolute top-0 right-0 p-3 opacity-10"><i class="fa-solid fa-leaf text-6xl text-emerald-500"></i></div>
+                    <div class="text-xs text-emerald-400 font-bold mb-6 uppercase tracking-widest border-b border-emerald-900/50 pb-2 inline-block"><i class="fa-solid fa-seedling"></i> Kebun Karakter Pribadi</div>
+                    ${renderBentukPohon(skorObj)}
+                `;
+            } else {
+                // Tampilan Guru: Dropdown Pilih Siswa
+                let opts = '<option value="">-- Pilih Nama Siswa --</option>'; 
+                siswaList.forEach(s => opts += `<option value="${s.nisn}">${s.nama} (${s.kelas})</option>`);
+                
+                container.innerHTML = `
+                    <div class="w-full text-left md:text-center">
+                        <h3 class="text-white font-bold mb-3 flex items-center justify-start md:justify-center gap-2 text-lg"><i class="fa-solid fa-magnifying-glass-chart text-emerald-400"></i> Pantau Pohon Karakter Siswa</h3>
+                        <p class="text-xs text-slate-400 mb-4">Lihat visualisasi perbandingan prestasi dan pelanggaran siswa.</p>
+                        <div class="search-container max-w-sm mx-auto">
+							<input type="text" id="search-pohon-input" onkeyup="cariSiswaAutocomplete(this, 'pohon-select-siswa', 'dropdown-pohon', 'gantiPohonGuru')" class="w-full p-3 bg-slate-800/80 rounded-xl border border-slate-600 text-sm text-white shadow-inner outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-center placeholder-slate-400" placeholder="🔍 Ketik nama siswa..." autocomplete="off">
+							<input type="hidden" id="pohon-select-siswa">
+							<div id="dropdown-pohon" class="search-dropdown bg-slate-800 border border-slate-600 rounded-b-lg shadow-2xl mt-1 text-left"></div>
+						</div>
+                    </div>
+                    <div id="pohon-display" class="w-full mt-4 p-6 bg-slate-900/40 rounded-xl border border-slate-700/50 transition-all duration-500">
+                        <div class="text-slate-500 text-sm italic py-8"><i class="fa-solid fa-hand-pointer text-2xl mb-2 block opacity-50"></i>Pilih nama siswa di atas untuk mengecek kebun karakternya.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function gantiPohonGuru() {
+            const nisn = document.getElementById('pohon-select-siswa').value;
+            const display = document.getElementById('pohon-display');
+            
+            if (!nisn) {
+                display.innerHTML = `<div class="text-slate-500 text-sm italic py-8"><i class="fa-solid fa-hand-pointer text-2xl mb-2 block opacity-50"></i>Pilih nama siswa di atas untuk mengecek kebun karakternya.</div>`;
+                return;
+            }
+            
+            // Efek Loading saat Guru ganti siswa (Biar terasa seperti "Scanning")
+            display.innerHTML = `<div class="py-8"><div class="loader !border-emerald-500 !border-t-transparent"></div></div>`;
+            
+            setTimeout(() => {
+                const skorObj = hitungSkorPohon(globalPrestasi, globalPelanggaran, nisn);
+                const namaSiswa = getSiswaDetail(nisn).nama;
+                display.innerHTML = `
+                    <div class="text-xs text-indigo-400 font-bold mb-6 uppercase tracking-widest bg-indigo-900/30 px-5 py-2 rounded-full inline-block border border-indigo-700/50 shadow-sm">Memantau: ${namaSiswa}</div>
+                    ${renderBentukPohon(skorObj)}
+                `;
+            }, 600); 
+        }
 
         // --- DASHBOARD LOGIC (REVISED WITH LEADERBOARD) ---
         async function refreshDashboardStats() {
@@ -708,8 +850,13 @@
                 const pLaporan = callAPI({ action: 'getData', type: 'bullying', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
                 const pKonseling = callAPI({ action: 'getData', type: 'booking', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
                 const pPrestasi = callAPI({ action: 'getData', type: 'prestasi', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
+				const pPelanggaran = callAPI({ action: 'getData', type: 'pelanggaran', role: currentUser.role, id_unik: currentUser.id_unik, nama: currentUser.nama });
 
-                const [rLaporan, rKonseling, rPrestasi] = await Promise.all([pLaporan, pKonseling, pPrestasi]);
+                const [rLaporan, rKonseling, rPrestasi, rPelanggaran] = await Promise.all([pLaporan, pKonseling, pPrestasi, pPelanggaran]);
+				
+				globalPrestasi = rPrestasi.status === 'success' ? rPrestasi.data : [];
+                globalPelanggaran = rPelanggaran.status === 'success' ? rPelanggaran.data : [];
+                initPohonKarakter(); // Panggil Tukang Kebunnya!
 
                 if(rLaporan.status === 'success') document.getElementById('stat-laporan').innerText = rLaporan.data.length;
                 else document.getElementById('stat-laporan').innerText = "0";
@@ -843,7 +990,8 @@
            ['dashboard', 'profil', 'list', 'chatbot'].forEach(id => document.getElementById('page-' + id).classList.add('hidden'));
             document.getElementById('page-' + page).classList.remove('hidden');
             if(page === 'profil') loadProfilData();
-            if(page === 'dashboard') refreshDashboardStats(); 
+            if(page === 'dashboard') refreshDashboardStats();
+			if(page === 'chatbot') loadRuBoChat();
         }
 
         function handleMenuAction(type) { closeSidebarMobile(); openList(type); }
@@ -1212,7 +1360,11 @@
                 <form onsubmit="submitLaporan(event, '${isPres?'Prestasi':'Pelanggaran'}')" class="space-y-4">
                     <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
                         <label class="text-xs text-slate-400 font-bold">CARI SISWA</label>
-                        <select name="nisn" onchange="onSiswaSelect(this)" class="w-full p-2 bg-slate-700 rounded mt-1 border-slate-600">${opts}</select>
+                        <div class="search-container">
+							<input type="text" id="search-modal-input" onkeyup="cariSiswaAutocomplete(this, 'hidden-nisn-modal', 'dropdown-modal', 'onSiswaSelect')" class="w-full p-2 bg-slate-700 rounded mt-1 border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="🔍 Ketik awalan nama siswa..." autocomplete="off">
+							<input type="hidden" name="nisn" id="hidden-nisn-modal">
+							<div id="dropdown-modal" class="search-dropdown bg-slate-800 border border-slate-600 rounded-b-lg shadow-2xl mt-1 text-left"></div>
+						</div>
                         <div class="flex gap-2 mt-2">
                             <input id="info-nama" class="w-1/2 p-2 bg-slate-900 rounded text-xs" readonly placeholder="Nama">
                             <input id="info-kelas" class="w-1/4 p-2 bg-slate-900 rounded text-xs" readonly placeholder="Kelas">
@@ -1706,67 +1858,118 @@
             document.getElementById('modal-print').classList.add('hidden');
         }
 		
-		// --- LOGIKA CHATBOT RUBO (GEMINI AI) ---
-        async function kirimPesanRuBo(e) {
-            e.preventDefault();
-            const inputEl = document.getElementById('rubo-input');
-            const msg = inputEl.value.trim();
-            if(!msg) return;
+		// --- LOGIKA CHATBOT RUBO (DENGAN MEMORI 30 PESAN & LOCAL STORAGE) ---
+        
+        let ruboHistory = [];
+        const MAX_HISTORY = 30;
 
-            const chatBox = document.getElementById('rubo-chat-box');
-            const btnSend = document.getElementById('btn-rubo-send');
-            
-            // 1. Tampilkan Bubble Siswa (Kanan)
-            chatBox.innerHTML += `
-            <div class="chat-bubble chat-right bg-gradient-to-br from-teal-600 to-teal-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tr-sm text-white !p-4 ml-auto text-sm">
-                ${escapeHtml(msg)}
-            </div>`;
-            
-            inputEl.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
-            
-            // 2. Kunci Input & Tampilkan "RuBo sedang mengetik..."
-            inputEl.disabled = true;
-            btnSend.disabled = true;
-            btnSend.innerHTML = '<div class="loader !w-5 !h-5 !border-2 border-white border-t-transparent"></div>';
-            
-            const typingId = 'rubo-typing-' + Date.now();
-            chatBox.innerHTML += `
-            <div id="${typingId}" class="chat-bubble chat-left bg-slate-800/80 border border-slate-700/50 shadow-md !max-w-[85%] !rounded-2xl !rounded-tl-sm text-teal-500 italic text-xs flex items-center gap-2 !p-3">
-                <i class="fa-solid fa-robot animate-bounce"></i> RuBo sedang memikirkan jawaban...
-            </div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-            
-            // 3. Panggil API ke Backend Google Apps Script
-            const res = await callAPI({ action: 'chatGemini', pesan: msg });
-            
-            // 4. Hapus tulisan "sedang mengetik"
-            const typingEl = document.getElementById(typingId);
-            if(typingEl) typingEl.remove();
-            
-            // 5. Tampilkan Balasan RuBo
-            if(res.status === 'success') {
-                // Konversi bintang markdown dari Gemini jadi teks tebal HTML
-                let finalReply = escapeHtml(res.reply).replace(/\*\*(.*?)\*\*/g, '<strong class="text-teal-300">$1</strong>');
-                chatBox.innerHTML += `
-                <div class="chat-bubble chat-left bg-slate-800 border border-slate-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tl-sm text-slate-200 leading-relaxed text-sm !p-4">
-                    <div class="font-bold text-xs text-teal-400 mb-2 flex items-center gap-2"><i class="fa-solid fa-robot"></i> RuBo</div>
-                    ${finalReply}
-                </div>`;
-            } else {
-                chatBox.innerHTML += `
-                <div class="chat-bubble chat-left bg-red-900/20 border border-red-900/50 shadow-md !max-w-[85%] !rounded-2xl !rounded-tl-sm text-red-400 text-sm !p-4">
-                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Waduh, otak mekanik RuBo lagi agak pusing nih (Koneksi error). Coba ketik lagi ya sahabat!
-                </div>`;
-            }
-            
-            // 6. Buka kembali kuncian input
-            inputEl.disabled = false;
-            btnSend.disabled = false;
-            btnSend.innerHTML = '<i class="fa-solid fa-paper-plane text-lg"></i>';
-            inputEl.focus();
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        // Fungsi untuk memuat riwayat chat saat menu RuBo dibuka
+        function loadRuBoChat() {
+            const chatBox = document.getElementById('rubo-chat-box');
+            if(!chatBox || !currentUser) return;
+
+            // Kunci memori unik berdasarkan NISN siswa
+            const storageKey = 'rubo_chat_' + currentUser.id_unik;
+            const savedChat = localStorage.getItem(storageKey);
+            
+            // Pesan sambutan standar RuBo
+            let htmlChat = `
+                <div class="chat-bubble chat-left bg-slate-800 border border-slate-700 shadow-sm !max-w-[85%] !rounded-2xl !rounded-tl-sm !p-3">
+                    <div class="font-bold text-[10px] text-teal-400 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-robot"></i> RuBo</div>
+                    <p class="text-slate-300 text-sm leading-relaxed">Halo sahabat! Aku RuBo. Ada yang mengganjal di hati hari ini? Cerita aja, rahasiamu aman bersamaku! 😊</p>
+                </div>
+            `;
+
+            if (savedChat) {
+                ruboHistory = JSON.parse(savedChat);
+                // Cetak riwayat ke layar
+                ruboHistory.forEach(chat => {
+                    if (chat.sender === 'Siswa') {
+                        htmlChat += `<div class="chat-bubble chat-right bg-gradient-to-br from-teal-600 to-teal-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tr-sm text-white !p-4 ml-auto text-sm">${escapeHtml(chat.text)}</div>`;
+                    } else {
+                        htmlChat += `<div class="chat-bubble chat-left bg-slate-800 border border-slate-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tl-sm text-slate-200 leading-relaxed text-sm !p-4"><div class="font-bold text-xs text-teal-400 mb-2 flex items-center gap-2"><i class="fa-solid fa-robot"></i> RuBo</div>${chat.text}</div>`;
+                    }
+                });
+            } else {
+                ruboHistory = []; // Kosongkan jika tidak ada riwayat
+            }
+            
+            chatBox.innerHTML = htmlChat;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Fungsi untuk menghapus riwayat chat
+        function bersihkanChatRuBo() {
+            showAlert('Bersihkan Chat?', 'Yakin ingin menghapus semua jejak obrolan ini dari HP/Laptopmu?', 'confirm', () => {
+                const storageKey = 'rubo_chat_' + currentUser.id_unik;
+                localStorage.removeItem(storageKey); // Hapus dari laci
+                ruboHistory = []; // Kosongkan otak RuBo
+                loadRuBoChat(); // Refresh layar kembali ke awal
+                showAlert('Berhasil', 'Jejak obrolan telah dihapus dari perangkat ini.', 'success');
+            });
+        }
+
+        // Fungsi utama mengirim pesan
+        async function kirimPesanRuBo(e) {
+            e.preventDefault();
+            const inputEl = document.getElementById('rubo-input');
+            const msg = inputEl.value.trim();
+            if(!msg) return;
+
+            const chatBox = document.getElementById('rubo-chat-box');
+            const btnSend = document.getElementById('btn-rubo-send');
+            const storageKey = 'rubo_chat_' + currentUser.id_unik;
+            
+            // 1. Simpan pesan siswa ke riwayat
+            ruboHistory.push({ sender: 'Siswa', text: msg });
+            if (ruboHistory.length > MAX_HISTORY) ruboHistory.shift(); // Buang yang paling lama jika lebih dari 30
+            localStorage.setItem(storageKey, JSON.stringify(ruboHistory)); // Simpan ke laci
+
+            // 2. Tampilkan pesan di layar
+            chatBox.innerHTML += `<div class="chat-bubble chat-right bg-gradient-to-br from-teal-600 to-teal-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tr-sm text-white !p-4 ml-auto text-sm">${escapeHtml(msg)}</div>`;
+            inputEl.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // 3. Kunci Input & Animasi Loading
+            inputEl.disabled = true; btnSend.disabled = true;
+            btnSend.innerHTML = '<div class="loader !w-5 !h-5 !border-2 border-white border-t-transparent"></div>';
+            const typingId = 'rubo-typing-' + Date.now();
+            chatBox.innerHTML += `<div id="${typingId}" class="chat-bubble chat-left bg-slate-800/80 border border-slate-700/50 shadow-md !max-w-[85%] !rounded-2xl !rounded-tl-sm text-teal-500 italic text-xs flex items-center gap-2 !p-3"><i class="fa-solid fa-robot animate-bounce"></i> RuBo sedang mengingat dan memikirkan jawaban...</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // --- TRIK RAHASIA FRONTEND (Biar nyambung tanpa ubah Backend) ---
+            // Kita gabungkan riwayat jadi 1 paragraf panjang secara diam-diam
+            let rahasiaIngatan = "Kontek chat sebelumnya:\n";
+            ruboHistory.forEach(h => { rahasiaIngatan += `${h.sender}: ${h.text}\n`; });
+            rahasiaIngatan += `\nSekarang balas pesan terakhir Siswa ini sebagai asisten RuBo yang empatik. Jangan bahas riwayat di atas, cukup balas saja pesan terakhirnya: "${msg}"`;
+            // ----------------------------------------------------------------
+
+            // 4. Panggil API (Kirim pesan yang sudah disuntik ingatan)
+            const res = await callAPI({ action: 'chatGemini', pesan: rahasiaIngatan });
+            
+            const typingEl = document.getElementById(typingId);
+            if(typingEl) typingEl.remove();
+            
+            // 5. Tangkap Balasan RuBo
+            if(res.status === 'success') {
+                let finalReply = escapeHtml(res.reply).replace(/\*\*(.*?)\*\*/g, '<strong class="text-teal-300">$1</strong>');
+                
+                // Simpan balasan RuBo ke riwayat
+                ruboHistory.push({ sender: 'RuBo', text: finalReply });
+                if (ruboHistory.length > MAX_HISTORY) ruboHistory.shift();
+                localStorage.setItem(storageKey, JSON.stringify(ruboHistory)); // Update laci
+
+                chatBox.innerHTML += `<div class="chat-bubble chat-left bg-slate-800 border border-slate-700 shadow-lg !max-w-[85%] !rounded-2xl !rounded-tl-sm text-slate-200 leading-relaxed text-sm !p-4"><div class="font-bold text-xs text-teal-400 mb-2 flex items-center gap-2"><i class="fa-solid fa-robot"></i> RuBo</div>${finalReply}</div>`;
+            } else {
+                chatBox.innerHTML += `<div class="chat-bubble chat-left bg-red-900/20 border border-red-900/50 shadow-md !max-w-[85%] !rounded-2xl !rounded-tl-sm text-red-400 text-sm !p-4"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Waduh, otak mekanik RuBo lagi pusing (Koneksi error). Coba lagi ya!</div>`;
+                ruboHistory.pop(); // Hapus pesan terakhir siswa dari memori karena gagal dibalas
+            }
+            
+            // 6. Buka kuncian
+            inputEl.disabled = false; btnSend.disabled = false;
+            btnSend.innerHTML = '<i class="fa-solid fa-paper-plane text-sm -ml-0.5"></i>';
+            inputEl.focus(); chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
 		function tampilkanMotivasi() {
 			// Daftar Motivasi Pagi (50 Kata)
@@ -1820,7 +2023,44 @@
             body.style.backgroundAttachment = "fixed";
         }
 		
+		// --- KODE KUNCI: SMART SEARCH SISWA ---
+        function cariSiswaAutocomplete(inputEl, hiddenId, dropdownId, onSelectCallback) {
+            const val = inputEl.value.toLowerCase();
+            const dropdown = document.getElementById(dropdownId);
+            const hiddenInput = document.getElementById(hiddenId);
+            
+            dropdown.innerHTML = '';
+            if (!val) { dropdown.classList.remove('show'); return; }
+            
+            // Cari nama atau NISN
+            const filtered = siswaList.filter(s => s.nama.toLowerCase().includes(val) || s.nisn.includes(val));
+            
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="p-3 text-sm text-slate-400">Nama tidak ditemukan</div>';
+            } else {
+                filtered.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 text-sm text-white hover:bg-indigo-600 cursor-pointer border-b border-slate-700 transition';
+                    div.innerHTML = `${s.nama} <span class="text-xs text-slate-400 block">${s.kelas}</span>`;
+                    div.onclick = () => {
+                        inputEl.value = s.nama; // Isi kotak dengan Nama
+                        hiddenInput.value = s.nisn; // Sembunyikan NISN
+                        dropdown.classList.remove('show'); // Tutup pop-up
+                        if (onSelectCallback) window[onSelectCallback](hiddenInput); // Jalankan fungsi bawaan
+                    };
+                    dropdown.appendChild(div);
+                });
+            }
+            dropdown.classList.add('show');
+        }
+
+        // Menutup pop-up jika guru klik di luar kotak
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container')) {
+                document.querySelectorAll('.search-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+		
     </script>
 </body>
 </html>
-

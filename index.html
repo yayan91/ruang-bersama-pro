@@ -1974,14 +1974,31 @@
 
             doc.setFont("times", "bold");
             doc.setFontSize(12);
-            doc.text(dataSekolah.pemerintah.toUpperCase(), 105, 15, { align: "center" });
-            doc.text(dataSekolah.instansi.toUpperCase(), 105, 20, { align: "center" });
+            let currentY = 15; // Inisialisasi titik awal
+            doc.text(dataSekolah.pemerintah.toUpperCase(), 105, currentY, { align: "center" });
+            
+            currentY += 5;
+            doc.text(dataSekolah.instansi.toUpperCase(), 105, currentY, { align: "center" });
+            
+            currentY += 6;
             doc.setFontSize(14);
-            doc.text(dataSekolah.sekolah.toUpperCase(), 105, 26, { align: "center" });
+            doc.text(dataSekolah.sekolah.toUpperCase(), 105, currentY, { align: "center" });
+            
+            // --- BAGIAN ALAMAT DINAMIS ---
+            currentY += 6;
             doc.setFont("times", "normal");
             doc.setFontSize(10);
-            doc.text(dataSekolah.alamat, 105, 32, { align: "center" });
-            doc.line(10, 36, 200, 36); // Garis bawah KOP
+            const alamatText = dataSekolah.alamat || "";
+            const alamatSplit = doc.splitTextToSize(alamatText, 160); // Batasi lebar agar wrapping
+            doc.text(alamatSplit, 105, currentY, { align: "center" });
+
+            // Hitung tinggi alamat (sekitar 4mm per baris)
+            const tinggiAlamat = alamatSplit.length * 4;
+            currentY += tinggiAlamat; 
+
+            // --- GARIS BAWAH KOP (DINAMIS) ---
+            doc.setLineWidth(0.5); // Atur ketebalan garis
+            doc.line(10, currentY, 200, currentY);
 
             // --- Fungsi Pembantu Format Tanggal (DD-MM-YYYY) ---
             const formatDate = (dateStr) => {
@@ -2459,4 +2476,3 @@
     </script>
 </body>
 </html>
-

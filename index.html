@@ -524,10 +524,20 @@
                 </div>
             </div>
 
-            <!-- FOOTER -->
             <footer class="mt-auto py-6 text-center text-slate-500 text-xs border-t border-slate-800/50">
-                <p>&copy; <span id="footer-year">2026</span> <strong>Ruang Bersama</strong>. Dibuat dengan <i class="fa-solid fa-heart text-pink-500 mx-1"></i> oleh <span class="font-bold text-indigo-400">Muhammad Hasratul</span>.</p>
-            </footer>
+				<p>
+					&copy; <span id="footer-year"></span> <strong>Mappaguru Online</strong>. 
+					Hak Cipta dilindungi undang-undang.
+				</p>
+				<p class="mt-2">
+					Dibuat dengan <i class="fa-solid fa-heart text-pink-500 mx-1"></i> oleh 
+					<span class="font-bold text-indigo-400">Muhammad Hasratul - Developer & Founder</span>
+				</p>
+			</footer>
+
+			<script>
+				document.getElementById("footer-year").textContent = new Date().getFullYear();
+			</script>
 
         </main>
     </div>
@@ -2476,5 +2486,4 @@
     </script>
 </body>
 </html>
-
 
